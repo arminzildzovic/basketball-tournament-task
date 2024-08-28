@@ -3,12 +3,16 @@ import Team from './team.js';
 import Group from './group.js';
 import Table from './table.js';
 import { deepCopyArray } from './helper.js';
+import Round from './round.js';
 
 // number of groups
 const NUM_OF_GROUPS = 3;
 
 // number of teams per group
 const NUM_OF_TEAMS  = 4;
+
+// number of round per group
+const NUM_OF_ROUNDS = 3;
 
 export default class Tournament {
 
@@ -22,7 +26,10 @@ export default class Tournament {
         this.createGroups();
     }
 
-    // createGroups by parsing the json files
+    // Creates groups:
+    // 1. Teams
+    // 2. Table
+    // 3. Rounds
     createGroups() {
         
         const groupData = fs.readFileSync("./json/groups.json", 'utf-8');
@@ -49,12 +56,23 @@ export default class Tournament {
             })
 
             // create the array of teams in this group
-            let teamArray = deepCopyArray(this.competingTeams.slice(curInd, curInd + NUM_OF_TEAMS));
-
-            // create one table for each group
-            let table = new Table(teamArray);
+            // let teamArrayTable = deepCopyArray(this.competingTeams.slice(curInd, curInd + NUM_OF_TEAMS));
+            let teamArrayTable = structuredClone(this.competingTeams.slice(curInd, curInd + NUM_OF_TEAMS));
             
+            // create one table for each group
+            let table = new Table(teamArrayTable);
+            
+            // create all of the rounds
+            let rounds = [];
+
+            for (let j = 0; j < NUM_OF_ROUNDS; j++) {
+                let teamArrayRounds = structuredClone(this.competingTeams.slice(curInd, curInd + NUM_OF_TEAMS));
+                rounds[j] = new Round(teamArrayRounds, j);
+                
+            }
+            
+
+
         }
-        
     }
 }

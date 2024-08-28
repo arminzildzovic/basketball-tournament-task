@@ -7,7 +7,8 @@ export default class Match {
     result = null;
 
     
-    constructor() {
-        
+    constructor(teamLeft, teamRight) {
+        this.teamL = teamLeft;
+        this.teamR = teamRight;
     }
 }

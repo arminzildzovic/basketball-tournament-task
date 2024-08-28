@@ -1,4 +1,4 @@
-export default class Hat {
+export default class Pot {
 
     // two teams
     teams = [];
