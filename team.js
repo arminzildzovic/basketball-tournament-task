@@ -1,3 +1,6 @@
+import { parseJSON } from "./helper.js";
+import History from "./history.js";
+import Match from "./match.js";
 
 export default class Team { 
     name = '';
@@ -6,14 +9,14 @@ export default class Team {
     // one history instance for each team
     history = null;
 
-    constructor(name, isoName, fiba) {
+    constructor(name, isoName, fiba, allTeams) {
         this.name = name;
         this.isoName = isoName;
         this.fiba = fiba;
-        this.createHistory();
+        
     }
 
-    createHistory() {
-
+    addToHistory(match) {
+        this.history.addMatch(match);
     }
 }

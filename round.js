@@ -1,11 +1,7 @@
 import Match from "./match.js";
 
-// number of matches per round
-const NUM_OF_MATCHES = 2;
-
 // One round (out of three) of the group phase
 export default class Round {
-    // two matches of one round
     matches = [];
 
     // parameters:

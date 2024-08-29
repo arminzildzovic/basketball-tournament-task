@@ -6,4 +6,8 @@ export default class History {
     constructor() {
         
     }
+
+    addMatch(match) {
+        this.matches.push(match);
+    }
 }
