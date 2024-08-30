@@ -9,14 +9,23 @@ export default class Team {
     // one history instance for each team
     history = null;
 
-    constructor(name, isoName, fiba, allTeams) {
+    constructor(name, isoName, fiba) {
         this.name = name;
         this.isoName = isoName;
         this.fiba = fiba;
-        
+        this.history = new History();
     }
 
     addToHistory(match) {
         this.history.addMatch(match);
+    }
+
+    matchExists(date) {
+        for (let match of this.history.matches) {
+            if (match.date === date) {
+                return true;
+            }
+        }
+        return false;
     }
 }

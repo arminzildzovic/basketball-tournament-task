@@ -22,12 +22,12 @@ export default class Tournament {
     constructor() {
         this.createGroups();
         this.createHistory();
+        for (const group of this.groups) {
+            group.startGroups();
+        }
     }
 
-    // Creates groups:
-    // 1. Teams
-    // 2. Table
-    // 3. Rounds
+    // Creates groups: teams, rounds and table
     createGroups() {
         
         const jsonGroup = parseJSON("./json/groups.json");
@@ -37,30 +37,25 @@ export default class Tournament {
 
         for (let i = 0; i < NUM_OF_GROUPS; i++) {            
             // new Group
-            this.groups[i] = new Group();
+            this.groups.push(new Group());
             this.groups[i].name = String.fromCharCode(CHAR_A.charCodeAt(0) + i);
             
             
             let curInd = this.competingTeams.length;
-            // insert the teams into the new group 
-            // and insert the current team into all of the competing teams
+            // new teams
             const teams = groupArray[i].map(data => {
-                let newTeam = new Team(data.Team, data.ISOCode, data.FIBARanking, this.competingTeams);
+                let newTeam = new Team(data.Team, data.ISOCode, data.FIBARanking);
                 this.competingTeams.push(newTeam);
             })
 
-            let teamArrayTable = structuredClone(this.competingTeams.slice(curInd, curInd + NUM_OF_TEAMS));
+            let teamArray = this.competingTeams.slice(curInd, curInd + NUM_OF_TEAMS);
             
             // group table
-            let table = new Table(teamArrayTable);
+            let table = new Table(teamArray);
             
             // create rounds
-            let rounds = [];
-
             for (let j = 0; j < NUM_OF_ROUNDS; j++) {
-                let teamArrayRounds = structuredClone(this.competingTeams.slice(curInd, curInd + NUM_OF_TEAMS));
-                // new Round(group's teams, round's index)
-                rounds[j] = new Round(teamArrayRounds, j);   
+                this.groups[i].rounds.push(new Round(teamArray, j));   
             }
         }
     }
@@ -72,10 +67,35 @@ export default class Tournament {
         for (const team of this.competingTeams) {
             let curExhib = exhibJSON[team.isoName];
             for (const exhib of curExhib) {
-                let match = new Match(team, this.competingTeams.find((element) => element.isoName === exhib.Opponent));
-                let resPts = exhib.Result.split("-");
-                match.result = new Result(parseInt(resPts[0]), parseInt(resPts[1]));
+                this.createNewMatch(team, undefined, exhib, false);
+            }
+            for (const t of this.competingTeams) {
+                let opponentExhib = exhibJSON[t.isoName];
+                for (const oppMatches of opponentExhib) {
+                    if (oppMatches.Opponent === team.isoName && !team.matchExists(oppMatches.Date)) {
+                        this.createNewMatch(team, t, oppMatches, true);
+                    }
+                }
             }
         }
+    }
+
+    createNewMatch(team, opTeam, exhib, reverseRes) {
+        let opponent;
+        if (reverseRes) {
+            opponent = opTeam;
+        } else {
+            opponent = this.competingTeams.find((element) => element.isoName === exhib.Opponent);
+        }
+        
+        let match = new Match(team, opponent, exhib.Date);
+        match.finished = true;
+        let resPts = exhib.Result.split("-");
+        if (!reverseRes) {
+            match.result = new Result(parseInt(resPts[0]), parseInt(resPts[1]));
+        } else {
+            match.result = new Result(parseInt(resPts[1]), parseInt(resPts[0]));
+        }
+        team.addToHistory(match);
     }
 }
