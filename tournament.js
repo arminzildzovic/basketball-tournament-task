@@ -8,9 +8,10 @@ import Match from './match.js';
 import Result from './result.js';
 
 
-const NUM_OF_GROUPS     = 3;
-const NUM_OF_TEAMS      = 4;
-const NUM_OF_ROUNDS     = 3;
+const NUM_OF_GROUPS             = 3;
+const NUM_OF_TEAMS              = 4;
+const NUM_OF_ROUNDS             = 3;
+const NUM_OF_KNOCKOUT_ROUNDS    = 3;
 
 const CHAR_A            = 'A';
 
@@ -20,6 +21,7 @@ export default class Tournament {
 
     groups = [];
     competingTeams = [];
+    afterGroupTeams = [];
 
     constructor() {
         this.createGroups();
@@ -27,6 +29,8 @@ export default class Tournament {
         for (const group of this.groups) {
             group.startGroups();
         }
+        this.rankTeams();
+        console.log(this.afterGroupTeams);
     }
 
     // Creates groups: teams, rounds and table
@@ -100,5 +104,48 @@ export default class Tournament {
             match.result = new Result(parseInt(resPts[1]), parseInt(resPts[0]));
         }
         team.addToHistory(match);
+    }
+
+    // ranks the teams after the group stage is completed
+    rankTeams() {
+        let rank = 0;
+        let groupPlace = 0;
+    
+        while(rank < Math.pow(2, NUM_OF_KNOCKOUT_ROUNDS)){
+            let rows = [];
+            for (let group of this.groups) {
+                rows.push(group.table.tableRows[groupPlace]);
+                rank++;
+            } 
+            rows.sort((a, b) => {
+                return this.sortTeamRanks(a, b);
+            });
+            for (let row of rows) {
+                let team = this.getTeamForIsoName(row.name);
+                this.afterGroupTeams.push(team);
+            }
+            groupPlace++;
+        }
+        this.afterGroupTeams = this.afterGroupTeams.slice(0, Math.pow(2, NUM_OF_KNOCKOUT_ROUNDS));
+    }
+
+    getTeamForIsoName(isoName) {
+        for (let team of this.competingTeams) {
+            if (team.isoName === isoName) {
+                return team;
+            }
+        }
+    }
+
+    sortTeamRanks(a, b) {
+        let res = b.pts - a.pts;
+        if (res != 0) {
+            return res;
+        } 
+        res = b.pointsDiff - a.pointsDiff;
+        if (res != 0) {
+            return res;
+        }
+        return b.pointsFor - a.pointsFor;
     }
 }

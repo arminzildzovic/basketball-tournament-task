@@ -125,10 +125,6 @@ export default class Table {
         return ptsDiff;
     }
 
-    tableLog() {
-        // console.log(this.tableRows);
-    }
-
 }
 
 
