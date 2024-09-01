@@ -1,6 +1,7 @@
 import Result from './result.js'
-import { logisticFunction, calcProbability, calcPtsDiffProbability } from './helper.js';
+import { logisticFunction, calcProbability, calcPtsDiffProbability, calcMean, calcStdDeviation, randomNumber } from './helper.js';
 
+// probability factors
 const FACTOR_FIBA           = 0.65;
 const FACTOR_WR             = 0.05;
 const FACTOR_OPPONENT       = 0.15;
@@ -12,16 +13,32 @@ const FACTOR_NEGATIVE       = 0.05;
 const LOGISTIC_K            = 0.09982023555;
 const LOGISTIC_X0           = -1.82358733;
 
-/* each bonus points tier is 5 
-/  so opponent with fiba ranking of 1-5 will give 5 bonus points, ranking of 6-10 will give 4 bonus points 
-/  until ranking TIER_FIBA_MEMBER * TIER_NUMBER*/
-const TIER_FIBA_MEMBER      = 1;
-const TIER_NUMBER           = 50;
+/* used to calculate the probability of winning based on the strength of the previous opponents
+/  each team is assigned a number based on their FIBA ranking */
+const MEMBERS_PER_TIER      = 1;
+const NUMBER_OF_TIERS       = 50;
 
 const POOR_PTS_DIFF         = 15;
 
+// lowest score to consider
+const LOWEST_SCORE          = 60;
+const HIGHEST_SCORE         = 130;
+
+// score difference - normal distribution
+const MEAN_PTS_DIFF         = 12.2352941176;
+const STD_DEV_PTS_DIFF      = 7.3125951920578;
+
+// factors used to calculate the score difference
+const PTS_DIFF_FACT_HISTORY = 0.4;
+const PTS_DIFF_FACT_FIBA    = 0.6;
+
+const PTS_DIFF_HIGH         = 30;
+
+const HIGHEST_FIBA_RANKING  = 33;
+
 // two teams and a result
 export default class Match {
+
     teamL = null;
     teamR = null;
     result = null;
@@ -36,19 +53,18 @@ export default class Match {
 
     // Calculate the score and update the team's histories
     finishMatch() {
-        this.finished = true;
         this.calculateScore();
-        
-        
+        console.log(this.result);
+    
     }
 
     // Pick a winner first and the calculate the score
     calculateScore() {
         let fibaProb;
         let wrProb;
-        console.log("\ncalculateScore");
-        console.log(this.teamL.isoName);
-        console.log(this.teamR.isoName);
+        // console.log("\ncalculateScore");
+        // console.log(this.teamL.isoName);
+        // console.log(this.teamR.isoName);
         let leftWinPred = false;
         if (this.teamL.fiba < this.teamR.fiba) {
             leftWinPred = true;
@@ -60,8 +76,6 @@ export default class Match {
         if (!leftWinPred) {
             fibaProb = 1 - fibaProb;
         }
-        console.log("fiba");
-        console.log(fibaProb);
 
         // probability to win based on win rate
         let historyL = this.teamL.history;
@@ -71,36 +85,18 @@ export default class Match {
         let rightTeamGrade = this.getPerformancePoints(historyR);
 
         wrProb = calcProbability(leftTeamGrade.wonNum, rightTeamGrade.wonNum);
-        
-        console.log("wr");
-        console.log(wrProb);
 
         // probability to win based on the strength of the opposing team
         let opponentProb = calcProbability(leftTeamGrade.opponents, rightTeamGrade.opponents);
-        
-        console.log("opponent");
-        console.log(leftTeamGrade.opponents);
-        console.log(rightTeamGrade.opponents);
-        console.log(opponentProb);
 
         // probability to win based on the points difference
         let leftPoints = leftTeamGrade.ptsDiff;
         let rightPoints = rightTeamGrade.ptsDiff;
-        
-        //let ptsDiffProb = calcProbability(leftPoints - min, rightPoints - min);
+
         let ptsDiffProb = calcPtsDiffProbability(leftPoints, rightPoints);
-        console.log("pts diff");
-        console.log(leftPoints);
-        console.log(rightPoints);
-        console.log(ptsDiffProb);
 
         // negative points probability (reverse the sides for probability calc)
         let negPointsProb = calcProbability(rightTeamGrade.negativePoints, leftTeamGrade.negativePoints);
-
-        console.log("neg");
-        console.log(leftTeamGrade.negativePoints);
-        console.log(rightTeamGrade.negativePoints);
-        console.log(negPointsProb);
 
         // final probability
         let prob =  fibaProb * FACTOR_FIBA +
@@ -108,45 +104,73 @@ export default class Match {
                     opponentProb * FACTOR_OPPONENT + 
                     ptsDiffProb * FACTOR_PTS_DIFF +
                     negPointsProb * FACTOR_NEGATIVE
-                    ; 
+                    ;
 
-        console.log("finalProb");
-        console.log(prob);
-        // new Result
+        // declare the winner
         let leftWon = false;
+        let winProb = prob;
+        let winningTeam;
+        let losingTeam;
         if (Math.random() < prob) {
             leftWon = true;
+            winningTeam = this.teamL;
+            losingTeam = this.teamR;
+        } else {
+            winningTeam = this.teamR;
+            losingTeam = this.teamL;
+            winProb = 1 - winProb;
         }
-        console.log(leftWon);
 
-        // create result
+        // create winning team's PF
+        let winnerPts = this.calculateWinnerPoints(winningTeam, losingTeam);
+
+        // points difference 
+        let scoreDifference = this.calculateScoreDifference(winningTeam, losingTeam, winProb);
+        let loserPts = winnerPts - scoreDifference;
+
+        let reverseMatch = new Match(this.teamR, this.teamL, this.date);
+        let reverseResult;
+        if (leftWon) {
+            this.result = new Result(winnerPts, loserPts);
+            reverseResult = new Result(loserPts, winnerPts);
+        } else {
+            this.result = new Result(loserPts, winnerPts);
+            reverseResult = new Result(winnerPts, loserPts);
+        }
+        this.finished = true;
+        reverseMatch.finished = true;
+        reverseMatch.result = reverseResult;
+
         // insert match into both teams' history
-        
+        this.teamL.addToHistory(this);
+        this.teamR.addToHistory(reverseMatch);
     }
 
     getPerformancePoints(history) {
-        let res = 0;
         let wonNum = 0;
         let negativePoints = 0;
         let opponentPoints = 0;
         let ptsDiffPoints = 0;
+
         for (let match of history.matches) {
-            if (match.result.leftTeamWon) {
-                wonNum++;
-                if (match.teamR.fiba < TIER_FIBA_MEMBER * TIER_NUMBER) {
-                    opponentPoints += TIER_NUMBER + 1 - Math.ceil(match.teamR.fiba / TIER_FIBA_MEMBER);
-                }
-            } else {
-                if (match.teamR != undefined && match.teamR.fiba > match.teamL.fiba) {
-                    negativePoints++;
-                }
+            if (match.finished) {
+                if (match.result.leftTeamWon) {
+                    wonNum++;
+                    if (match.teamR.fiba < MEMBERS_PER_TIER * NUMBER_OF_TIERS) {
+                        opponentPoints += NUMBER_OF_TIERS + 1 - Math.ceil(match.teamR.fiba / MEMBERS_PER_TIER);
+                    }
+                } else {
+                    if (match.teamR != undefined && match.teamR.fiba > match.teamL.fiba) {
+                        negativePoints++;
+                    }
+                    
+                    if (match.result.pointsL < match.result.pointsR - POOR_PTS_DIFF) {
+                        negativePoints++;
+                    }
                 
-                if (match.result.pointsL < match.result.pointsR - POOR_PTS_DIFF) {
-                    negativePoints++;
                 }
-            
+                ptsDiffPoints += match.result.pointsL - match.result.pointsR;
             }
-            ptsDiffPoints += match.result.pointsL - match.result.pointsR;
         }
         
         return {
@@ -156,5 +180,89 @@ export default class Match {
             "ptsDiff":          ptsDiffPoints,
             "negativePoints":   negativePoints
         }
+    }
+
+    calculateWinnerPoints(winner, wrProb) {
+        let mean = 85;
+        let stdDeviation = 5;
+        let ptsFor = [];
+        for (let match of winner.history.matches) {
+            if (match.finished) {
+                ptsFor.push(match.result.pointsL);
+            }
+        }
+        if (ptsFor.length > 0) {
+            mean = calcMean(ptsFor);
+            stdDeviation = calcStdDeviation(ptsFor, mean);
+            if (stdDeviation < 1) {
+                stdDeviation = 1;
+            }
+        }
+        
+        let gaussRnd = randomNumber(mean, stdDeviation, LOWEST_SCORE, HIGHEST_SCORE);
+        
+        const avgPoints = 100;
+        const avgFactor = 0.1;
+        const gaussFactor = 0.9;
+
+
+        let res =   gaussRnd * gaussFactor +
+                    avgPoints * avgFactor 
+                    ;
+
+        return Math.round(res);
+    }
+
+    calculateScoreDifference(winner, loser, wr) {
+
+        // average match based random number
+        let ptsDiffNormalDist = Math.abs(randomNumber(MEAN_PTS_DIFF, STD_DEV_PTS_DIFF, -PTS_DIFF_HIGH, PTS_DIFF_HIGH));
+        
+        // fiba
+        let fibaDiff = loser.fiba - winner.fiba;
+        const kArgFiba = 0.06289612016;
+        const x0ArgFiba = 9.95898447436;
+        const limitArgFiba = 30;
+
+        let ptsDiffLogistic = limitArgFiba * logisticFunction(kArgFiba, x0ArgFiba, fibaDiff);
+
+        // probability of the winner winning
+        const kArgProb = 4.882721282;
+        const x0ArgProb = 0.725;
+        const limitArgProb = 40;
+
+        // console.log("wr");
+        // console.log(wr);
+        // console.log(fibaDiff);
+        let probLogistic = limitArgProb * logisticFunction(kArgProb, x0ArgProb, wr);
+        
+        // average difference
+        const avgDifference = 7;
+
+        // factors
+        const normalDistFact = 0.3;
+        const logisticFact = 0.25;
+        const probFact = 0.25;
+        const avgFact = 0.2;
+
+
+        let res =   Math.round(Math.abs(
+            ptsDiffNormalDist * normalDistFact +
+            ptsDiffLogistic * logisticFact +
+            probLogistic * probFact +
+            avgDifference * avgFact
+        ));
+
+        // console.log(ptsDiffNormalDist);
+        // console.log(ptsDiffLogistic);
+        // console.log(probLogistic);
+        //console.log(avgDifference);
+        
+
+        if (res < 1) {
+            res = 1;
+        }
+
+        return res;
     }
 }

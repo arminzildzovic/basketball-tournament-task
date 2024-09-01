@@ -8,11 +8,13 @@ import Match from './match.js';
 import Result from './result.js';
 
 
-const NUM_OF_GROUPS = 3;
-const NUM_OF_TEAMS  = 4;
-const NUM_OF_ROUNDS = 3;
+const NUM_OF_GROUPS     = 3;
+const NUM_OF_TEAMS      = 4;
+const NUM_OF_ROUNDS     = 3;
 
-const CHAR_A        = 'A';
+const CHAR_A            = 'A';
+
+const ROUND_DATE_STRING = "roundDate";
 
 export default class Tournament {
 
@@ -37,7 +39,7 @@ export default class Tournament {
 
         for (let i = 0; i < NUM_OF_GROUPS; i++) {            
             // new Group
-            this.groups.push(new Group());
+            this.groups.push(new Group(ROUND_DATE_STRING));
             this.groups[i].name = String.fromCharCode(CHAR_A.charCodeAt(0) + i);
             
             
@@ -52,10 +54,11 @@ export default class Tournament {
             
             // group table
             let table = new Table(teamArray);
+            this.groups[i].table = table;
             
             // create rounds
             for (let j = 0; j < NUM_OF_ROUNDS; j++) {
-                this.groups[i].rounds.push(new Round(teamArray, j));   
+                this.groups[i].rounds.push(new Round(teamArray, j, ROUND_DATE_STRING));   
             }
         }
     }

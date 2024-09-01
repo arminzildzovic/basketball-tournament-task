@@ -20,13 +20,11 @@ export function randomNumber(mean, stdev, min, max) {
     const v = Math.random();
     const z = Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
     const res = z * stdev + mean;
-    if (res < min) {
-        res = min;
+    if (res < min || res > max) {
+        return randomNumber(mean, stdev, min, max);
+    } else {
+        return res;
     }
-    if (res > max) {
-        res = max;
-    }
-    return res;
 }
 
 // calculates probability based on points
@@ -37,4 +35,20 @@ export function calcProbability(points1, points2) {
 
 export function calcPtsDiffProbability(ptsDiff1, ptsDiff2) {
     return 0.5 + (ptsDiff1 - ptsDiff2) / 250;
+}
+
+export function calcMean(array) {
+    let sum = 0;
+    for (let num of array) {
+        sum += num;
+    }
+    return sum/array.length;
+}
+
+export function calcStdDeviation(array, mean) {
+    let sum = 0;
+    for (let num of array) {
+        sum += Math.pow((num - mean), 2);
+    }
+    return Math.sqrt(sum/array.length);
 }
