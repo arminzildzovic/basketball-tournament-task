@@ -40,6 +40,7 @@ export default class Tournament {
         this.createPots();
         this.createKnockoutPhases();
         this.createBracket();
+        this.playKnockoutPhases();
     }
 
     // Creates groups: teams, rounds and table
@@ -183,7 +184,6 @@ export default class Tournament {
     }
     
     createBracket() {
-        console.log("\n                CreateBracket    \n");
         this.knockoutPhases[0].teams = this.afterGroupTeams;
         
         let startPhase = this.knockoutPhases[0];
@@ -192,10 +192,7 @@ export default class Tournament {
         // goes through the pot pairs (D-G) and (E-F) and pairs the teams
         for (let i = 0; i < NUM_OF_POTS / 2; i++) {
             curPot = this.pots[i];
-            let tempTeams = structuredClone(curPot.teams);
-            console.log(curPot);
             let opponentPot = this.pots[NUM_OF_POTS - i - 1];
-            console.log(opponentPot);
             for (let j = 0; j < curPot.teams.length; j++) {
                 console.log(j);
                 let restrictionExists = false;
@@ -207,7 +204,6 @@ export default class Tournament {
                     }
                 }
                 if (restrictionExists) {
-                    console.log(" Line 201");
                     startPhase.createMatch(curPot.teams[j], opponentPot.teams[(indexOfOpposingTeam + 1) % 2]);
                     
                 }
@@ -218,7 +214,6 @@ export default class Tournament {
                     
                     for (let team of opponentPot.teams) {
                         if (!startPhase.matchExistsForTeam(team)) {
-                            console.log("Line 212");
                             startPhase.createMatch(curTeam, team);
                             break;
                         }
@@ -236,8 +231,6 @@ export default class Tournament {
 
     // Fisher-Yates shuffle
     shuffleMatches() {
-        console.log("\n\n        SHUFFLE MATCHES \n\n");
-        console.log(this.knockoutPhases[0].matches);
         let m = this.knockoutPhases[0].matches.length;
         let t, i;
 
@@ -256,8 +249,6 @@ export default class Tournament {
         let match0 = this.knockoutPhases[0].matches[0];
         let match1 = this.knockoutPhases[0].matches[1];   
 
-        console.log(match0);
-        console.log(match1);
         if (this.samePotTeams(match0.teamL, match1.teamL) || this.samePotTeams(match0.teamL, match1.teamR)) {
             for (let i = 2; i < this.knockoutPhases[0].matches.length; i++) {
                 let curMatch = this.knockoutPhases[0].matches[i];
@@ -274,5 +265,55 @@ export default class Tournament {
     // checks if two teams belong to the same pot
     samePotTeams(team1, team2) {
         return team1.potNum === team2.potNum;
+    }
+
+    playKnockoutPhases() { 
+        for (let i = 0; i < this.knockoutPhases.length - 3; i++) {
+            // next phase teams
+            let winners = [];
+            
+            for (let match of this.knockoutPhases[i].matches) {
+                match.finishMatch();
+                winners.push(match.getWinner());
+            }
+
+            // create a new match for the next phase - semifinals
+            for (let j = 0; j < winners.length / 2; j++) {
+                this.knockoutPhases[i + 1].matches.push(new Match(winners[j * 2], winners[j * 2 + 1], ROUND_DATE_STRING));
+            }
+            console.log("\n\n              QuarterFinals:  \n\n")
+            console.log(this.knockoutPhases[i].matches);
+        }
+
+        // semifinals
+        let winners = [];
+        let losers = [];
+        let semiFinals = this.knockoutPhases[this.knockoutPhases.length - 3];
+
+        for (let match of semiFinals.matches) {
+            match.finishMatch();
+            winners.push(match.getWinner());
+            losers.push(match.getLoser());
+        }
+
+        console.log("\n\n              SemiFinals:  \n\n")
+        console.log(this.knockoutPhases[1].matches);
+
+        // 3rd place match
+        let thirdPlacePhase = this.knockoutPhases[this.knockoutPhases.length - 2];
+        let thirdPlaceMatch = new Match(losers[0], losers[1], ROUND_DATE_STRING);
+        thirdPlacePhase.matches.push(thirdPlaceMatch);
+        thirdPlaceMatch.finishMatch();
+
+        console.log("\n\n              3rd place Match:  \n\n")
+        console.log(this.knockoutPhases[2].matches);
+        
+
+        let final = this.knockoutPhases[this.knockoutPhases.length - 2];
+        let finalMatch = new Match(winners[0], winners[1], ROUND_DATE_STRING);
+        final.matches.push(finalMatch);
+        finalMatch.finishMatch();
+        console.log("\n\n              Finals:  \n\n")
+        console.log(this.knockoutPhases[3].matches);
     }
 }

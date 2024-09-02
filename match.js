@@ -62,9 +62,7 @@ export default class Match {
     calculateScore() {
         let fibaProb;
         let wrProb;
-        // console.log("\ncalculateScore");
-        // console.log(this.teamL.isoName);
-        // console.log(this.teamR.isoName);
+
         let leftWinPred = false;
         if (this.teamL.fiba < this.teamR.fiba) {
             leftWinPred = true;
@@ -231,9 +229,6 @@ export default class Match {
         const x0ArgProb = 0.725;
         const limitArgProb = 40;
 
-        // console.log("wr");
-        // console.log(wr);
-        // console.log(fibaDiff);
         let probLogistic = limitArgProb * logisticFunction(kArgProb, x0ArgProb, wr);
         
         // average difference
@@ -251,13 +246,7 @@ export default class Match {
             ptsDiffLogistic * logisticFact +
             probLogistic * probFact +
             avgDifference * avgFact
-        ));
-
-        // console.log(ptsDiffNormalDist);
-        // console.log(ptsDiffLogistic);
-        // console.log(probLogistic);
-        //console.log(avgDifference);
-        
+        ));        
 
         if (res < 1) {
             res = 1;
@@ -270,5 +259,13 @@ export default class Match {
         if (team.isoName === this.teamL.isoName || team.isoName === this.teamR.isoName) {
             return true;
         }
+    }
+
+    getWinner() {
+        return this.result.leftTeamWon ? this.teamL : this.teamR;
+    }
+
+    getLoser() {
+        return this.result.leftTeamWon ? this.teamR : this.teamL;
     }
 }
