@@ -9,6 +9,9 @@ export default class Team {
     // one history instance for each team
     history = null;
 
+    groupNum = -1;
+    potNum = -1;
+
     constructor(name, isoName, fiba) {
         this.name = name;
         this.isoName = isoName;

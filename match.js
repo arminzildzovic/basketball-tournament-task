@@ -265,4 +265,10 @@ export default class Match {
 
         return res;
     }
+
+    teamPlaysInMatch(team) {
+        if (team.isoName === this.teamL.isoName || team.isoName === this.teamR.isoName) {
+            return true;
+        }
+    }
 }

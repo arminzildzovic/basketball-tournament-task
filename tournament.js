@@ -6,14 +6,19 @@ import { parseJSON as parseJSON } from './helper.js';
 import Round from './round.js';
 import Match from './match.js';
 import Result from './result.js';
+import Pot from './Pot.js';
+import KnockoutPhase from './knockoutPhase.js';
 
 
 const NUM_OF_GROUPS             = 3;
 const NUM_OF_TEAMS              = 4;
 const NUM_OF_ROUNDS             = 3;
 const NUM_OF_KNOCKOUT_ROUNDS    = 3;
+const NUM_OF_POTS               = 4;
+const NUM_OF_TEAMS_PER_POT      = 2;
 
 const CHAR_A            = 'A';
+const CHAR_D            = 'D';
 
 const ROUND_DATE_STRING = "roundDate";
 
@@ -22,6 +27,8 @@ export default class Tournament {
     groups = [];
     competingTeams = [];
     afterGroupTeams = [];
+    pots = [];
+    knockoutPhases = [];
 
     constructor() {
         this.createGroups();
@@ -30,7 +37,9 @@ export default class Tournament {
             group.startGroups();
         }
         this.rankTeams();
-        console.log(this.afterGroupTeams);
+        this.createPots();
+        this.createKnockoutPhases();
+        this.createBracket();
     }
 
     // Creates groups: teams, rounds and table
@@ -51,6 +60,7 @@ export default class Tournament {
             // new teams
             const teams = groupArray[i].map(data => {
                 let newTeam = new Team(data.Team, data.ISOCode, data.FIBARanking);
+                newTeam.groupNum = i;
                 this.competingTeams.push(newTeam);
             })
 
@@ -147,5 +157,122 @@ export default class Tournament {
             return res;
         }
         return b.pointsFor - a.pointsFor;
+    }
+
+    createPots(){
+        for (let i = 0; i < NUM_OF_POTS; i++) {
+            this.pots.push(new Pot(String.fromCharCode(CHAR_D.charCodeAt(0) + i)));
+        }
+        console.log("Create pots: ");
+        console.log(this.afterGroupTeams.length);
+        for (let i = 0; i < this.afterGroupTeams.length; i++) {
+            this.pots[Math.trunc(i/NUM_OF_TEAMS_PER_POT)].teams.push(this.afterGroupTeams[i]);
+            this.afterGroupTeams[i].potNum = Math.trunc(i/NUM_OF_TEAMS_PER_POT);
+        }
+    }
+
+    createKnockoutPhases() {
+        for (let i = 0; i < NUM_OF_KNOCKOUT_ROUNDS + 1; i++) {
+            if (i != NUM_OF_KNOCKOUT_ROUNDS) {
+                this.knockoutPhases.push(new KnockoutPhase(Math.pow(2, NUM_OF_KNOCKOUT_ROUNDS - 1)));
+            } else {
+                // third place match
+                this.knockoutPhases.push(new KnockoutPhase(1));
+            }
+        }
+    }
+    
+    createBracket() {
+        console.log("\n                CreateBracket    \n");
+        this.knockoutPhases[0].teams = this.afterGroupTeams;
+        
+        let startPhase = this.knockoutPhases[0];
+        let curPot = null;
+        
+        // goes through the pot pairs (D-G) and (E-F) and pairs the teams
+        for (let i = 0; i < NUM_OF_POTS / 2; i++) {
+            curPot = this.pots[i];
+            let tempTeams = structuredClone(curPot.teams);
+            console.log(curPot);
+            let opponentPot = this.pots[NUM_OF_POTS - i - 1];
+            console.log(opponentPot);
+            for (let j = 0; j < curPot.teams.length; j++) {
+                console.log(j);
+                let restrictionExists = false;
+                let indexOfOpposingTeam = -1;
+                for (let k = 0; k < opponentPot.teams.length; k++) {
+                    if (curPot.teams[j].groupNum == opponentPot.teams[k].groupNum) {
+                        restrictionExists = true;
+                        indexOfOpposingTeam = k;
+                    }
+                }
+                if (restrictionExists) {
+                    console.log(" Line 201");
+                    startPhase.createMatch(curPot.teams[j], opponentPot.teams[(indexOfOpposingTeam + 1) % 2]);
+                    
+                }
+            }
+            for (let j = 0; j < curPot.teams.length; j++) {
+                let curTeam = curPot.teams[j];
+                if (!startPhase.matchExistsForTeam(curTeam)) {
+                    
+                    for (let team of opponentPot.teams) {
+                        if (!startPhase.matchExistsForTeam(team)) {
+                            console.log("Line 212");
+                            startPhase.createMatch(curTeam, team);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        for (let match of startPhase.matches) {
+            if (match != undefined) {
+                console.log(match.teamL.isoName, "-", match.teamR.isoName);
+            }
+        }
+        this.shuffleMatches();
+    }
+
+    // Fisher-Yates shuffle
+    shuffleMatches() {
+        console.log("\n\n        SHUFFLE MATCHES \n\n");
+        console.log(this.knockoutPhases[0].matches);
+        let m = this.knockoutPhases[0].matches.length;
+        let t, i;
+
+        // While there remain elements to shuffle…
+        while (m) {
+
+            i = Math.floor(Math.random() * m--);
+
+            // And swap it with the current element.
+            t = this.knockoutPhases[0].matches[m];
+            this.knockoutPhases[0].matches[m] = this.knockoutPhases[0].matches[i];
+            this.knockoutPhases[0].matches[i] = t;
+        }
+
+        // Check if the matches generated from the same pots are in the same half of the bracket
+        let match0 = this.knockoutPhases[0].matches[0];
+        let match1 = this.knockoutPhases[0].matches[1];   
+
+        console.log(match0);
+        console.log(match1);
+        if (this.samePotTeams(match0.teamL, match1.teamL) || this.samePotTeams(match0.teamL, match1.teamR)) {
+            for (let i = 2; i < this.knockoutPhases[0].matches.length; i++) {
+                let curMatch = this.knockoutPhases[0].matches[i];
+                if (!this.samePotTeams(match0.teamL, curMatch.teamL) && !this.samePotTeams(match0.teamL, curMatch.teamR)) {
+                    let temp = this.knockoutPhases[0].matches[i];
+                    this.knockoutPhases[0].matches[i] = this.knockoutPhases[0].matches[1];
+                    this.knockoutPhases[0].matches[1] = temp;
+                }
+            }
+        }
+        console.log(this.knockoutPhases[0].matches);
+    }
+
+    // checks if two teams belong to the same pot
+    samePotTeams(team1, team2) {
+        return team1.potNum === team2.potNum;
     }
 }

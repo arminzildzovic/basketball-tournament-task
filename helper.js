@@ -51,3 +51,7 @@ export function calcStdDeviation(array, mean) {
     }
     return Math.sqrt(sum/array.length);
 }
+
+export function getRandomInt(max) {
+    return Math.floor(Math.random() * max);
+}

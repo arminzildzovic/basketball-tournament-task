@@ -1,9 +1,10 @@
 export default class Pot {
 
     // two teams
+    potName = '';
     teams = [];
 
-    constructor() {
-        
+    constructor(name) {
+        this.potName = name;
     }
 }
