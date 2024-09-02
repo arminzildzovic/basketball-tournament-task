@@ -13,7 +13,6 @@ export default class KnockoutPhase {
     }
 
     createMatch(team1, team2) {
-        console.log(team1.isoName, "-", team2.isoName);
         this.matches.push(new Match(team1, team2, MATCH_DATE));
     }
 

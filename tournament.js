@@ -36,10 +36,13 @@ export default class Tournament {
         for (const group of this.groups) {
             group.startGroups();
         }
+        this.outputGroupResults();
         this.rankTeams();
         this.createPots();
+        this.outputPots();
         this.createKnockoutPhases();
         this.createBracket();
+        this.outputKnockoutPhase();
         this.playKnockoutPhases();
     }
 
@@ -164,8 +167,6 @@ export default class Tournament {
         for (let i = 0; i < NUM_OF_POTS; i++) {
             this.pots.push(new Pot(String.fromCharCode(CHAR_D.charCodeAt(0) + i)));
         }
-        console.log("Create pots: ");
-        console.log(this.afterGroupTeams.length);
         for (let i = 0; i < this.afterGroupTeams.length; i++) {
             this.pots[Math.trunc(i/NUM_OF_TEAMS_PER_POT)].teams.push(this.afterGroupTeams[i]);
             this.afterGroupTeams[i].potNum = Math.trunc(i/NUM_OF_TEAMS_PER_POT);
@@ -194,7 +195,6 @@ export default class Tournament {
             curPot = this.pots[i];
             let opponentPot = this.pots[NUM_OF_POTS - i - 1];
             for (let j = 0; j < curPot.teams.length; j++) {
-                console.log(j);
                 let restrictionExists = false;
                 let indexOfOpposingTeam = -1;
                 for (let k = 0; k < opponentPot.teams.length; k++) {
@@ -219,11 +219,6 @@ export default class Tournament {
                         }
                     }
                 }
-            }
-        }
-        for (let match of startPhase.matches) {
-            if (match != undefined) {
-                console.log(match.teamL.isoName, "-", match.teamR.isoName);
             }
         }
         this.shuffleMatches();
@@ -259,7 +254,6 @@ export default class Tournament {
                 }
             }
         }
-        console.log(this.knockoutPhases[0].matches);
     }
 
     // checks if two teams belong to the same pot
@@ -272,17 +266,19 @@ export default class Tournament {
             // next phase teams
             let winners = [];
             
+            console.log("\nČetvrtfinale:");
+            let j = 0;
             for (let match of this.knockoutPhases[i].matches) {
                 match.finishMatch();
                 winners.push(match.getWinner());
+                console.log("   ", match.teamL.name, "-", match.teamR.name, "(" + match.result.pointsL, ":", match.result.pointsR + ")");
+                j++;
             }
 
             // create a new match for the next phase - semifinals
             for (let j = 0; j < winners.length / 2; j++) {
                 this.knockoutPhases[i + 1].matches.push(new Match(winners[j * 2], winners[j * 2 + 1], ROUND_DATE_STRING));
             }
-            console.log("\n\n              QuarterFinals:  \n\n")
-            console.log(this.knockoutPhases[i].matches);
         }
 
         // semifinals
@@ -290,30 +286,96 @@ export default class Tournament {
         let losers = [];
         let semiFinals = this.knockoutPhases[this.knockoutPhases.length - 3];
 
+        console.log("\nPolufinale:")
         for (let match of semiFinals.matches) {
             match.finishMatch();
             winners.push(match.getWinner());
             losers.push(match.getLoser());
+            this.outputMatchResult(match);
         }
 
-        console.log("\n\n              SemiFinals:  \n\n")
-        console.log(this.knockoutPhases[1].matches);
-
         // 3rd place match
+        console.log("\nUtakmica za treće mesto:");
         let thirdPlacePhase = this.knockoutPhases[this.knockoutPhases.length - 2];
         let thirdPlaceMatch = new Match(losers[0], losers[1], ROUND_DATE_STRING);
         thirdPlacePhase.matches.push(thirdPlaceMatch);
         thirdPlaceMatch.finishMatch();
-
-        console.log("\n\n              3rd place Match:  \n\n")
-        console.log(this.knockoutPhases[2].matches);
+        this.outputMatchResult(thirdPlaceMatch);
         
-
+        // finals
+        console.log("\nFinale:");
         let final = this.knockoutPhases[this.knockoutPhases.length - 2];
         let finalMatch = new Match(winners[0], winners[1], ROUND_DATE_STRING);
         final.matches.push(finalMatch);
         finalMatch.finishMatch();
-        console.log("\n\n              Finals:  \n\n")
-        console.log(this.knockoutPhases[3].matches);
+        this.outputMatchResult(finalMatch);
+
+        // output medals
+        console.log("\nMedalje:");
+        console.log("    1.", finalMatch.getWinner().name);
+        console.log("    2.", finalMatch.getLoser().name);
+        console.log("    3.", thirdPlaceMatch.getWinner().name);
+    }
+
+    outputGroupResults() {
+        console.log("         Grupna faza");
+        for (let i = 0; i < NUM_OF_ROUNDS; i++) {
+            console.log("kolo", i + 1 + ":");
+            for (let group of this.groups) {
+                console.log("    Grupa " + group.name + ":");
+                let round = group.rounds[i];
+                for (let match of group.rounds[i].matches) {
+                    console.log("        " + match.teamL.name + " - " + match.teamR.name + " (" + match.result.pointsL + ":" + match.result.pointsR + ")");
+                }
+            }
+        }
+
+        this.outputGroupTable();
+    }
+
+    outputGroupTable() {
+        const namePad = 17;
+        console.log("\nKonačan plasman u grupama:");
+        for (let group of this.groups) {
+            console.log("    Grupa", group.name, " ( Ime", "          -", "pobede/", "porazi/", "bodovi/", "postignuti koševi/", "primljeni koševi/", "koš razlika/", "::");
+            let i = 0;
+            for (let row of group.table.tableRows) {
+                let team = group.table.getTeamFromRow(row);
+                let signStr = '';
+                if (row.pointsDiff >= 0) {
+                    signStr = '+';
+                }
+                console.log("        ", i+1, ". ", team.name.padEnd(namePad), " ", row.pts - 3, "  /   ", 6-row.pts, "   / ", row.pts, " /       ", row.pointsFor, "      /       ", row.pointsAgainst, "     /    ", (signStr + row.pointsDiff).padEnd(4, ' '), "     / ");
+                i++;
+            }
+            
+        }
+    }
+
+    outputPots() {
+        console.log("Šeširi:");
+        for (let pot of this.pots) {
+            console.log("    Šešir ", pot.potName);
+            for (let team of pot.teams) {
+                console.log("       ", team.name);
+            }
+        }
+        console.log("\n");
+    }
+    
+    outputKnockoutPhase() {
+        console.log("Eliminaciona faza:");
+        let i = 0;
+        for (let match of this.knockoutPhases[0].matches) {
+            console.log("   ", match.teamL.name, "-", match.teamR.name);
+            if (i == 1) {
+                console.log("");
+            }
+            i++
+        }
+    }
+
+    outputMatchResult(match) {
+        console.log("   ", match.teamL.name, "-", match.teamR.name, "(" + match.result.pointsL, ":", match.result.pointsR + ")");
     }
 }

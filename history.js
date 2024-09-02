@@ -9,8 +9,5 @@ export default class History {
 
     addMatch(match) {
         this.matches.push(match);
-        if (match.date === "roundDate") {
-            console.log(match.teamL.isoName, match.teamR.isoName);
-        }
     }
 }

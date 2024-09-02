@@ -53,9 +53,7 @@ export default class Match {
 
     // Calculate the score and update the team's histories
     finishMatch() {
-        this.calculateScore();
-        console.log(this.result);
-    
+        this.calculateScore();    
     }
 
     // Pick a winner first and the calculate the score

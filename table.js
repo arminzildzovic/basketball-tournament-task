@@ -47,7 +47,6 @@ export default class Table {
         if (numberOfSamePts == 3) {
             this.sortThreeTeams(this.tableRows.length - 3, date);
         }
-        console.log(this.tableRows);
     }
 
     getTeamFromRow(row) {
