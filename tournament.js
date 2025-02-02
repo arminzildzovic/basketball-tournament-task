@@ -337,7 +337,7 @@ export default class Tournament {
         const namePad = 17;
         console.log("\nKonačan plasman u grupama:");
         for (let group of this.groups) {
-            console.log("    Grupa", group.name, " ( Ime", "          -", "pobede/", "porazi/", "bodovi/", "postignuti koševi/", "primljeni koševi/", "koš razlika/", "::");
+            console.log("    Grupa", group.name, "    Ime", "            -", "pobede/", "porazi/", "bodovi/", "postignuti koševi/", "primljeni koševi/", "koš razlika/", "::");
             let i = 0;
             for (let row of group.table.tableRows) {
                 let team = group.table.getTeamFromRow(row);
@@ -345,7 +345,7 @@ export default class Tournament {
                 if (row.pointsDiff >= 0) {
                     signStr = '+';
                 }
-                console.log("        ", i+1, ". ", team.name.padEnd(namePad), " ", row.pts - 3, "  /   ", 6-row.pts, "   / ", row.pts, " /       ", row.pointsFor, "      /       ", row.pointsAgainst, "     /    ", (signStr + row.pointsDiff).padEnd(4, ' '), "     / ");
+                console.log("        ", i+1, ". ", team.name.padEnd(namePad), "   ", row.pts - 3, "  /  ", 6-row.pts, "  /  ", row.pts, "  /       ", row.pointsFor, "      /       ", row.pointsAgainst, "     /    ", (signStr + row.pointsDiff).padEnd(3, ' '), "   / ");
                 i++;
             }
             
