@@ -22,13 +22,13 @@ Node.js v20.17.0
 
 ### Installation
 
-Clone the repository
+1. Install node.js
 
-Navigate to the project directory
+2. Clone the repository
 
-Start the simulation:
+3. Navigate to the project directory
 
-npm start
+4. Start the simulation, using npm start
 
 ## Project Structure
 
