@@ -40,7 +40,7 @@ index.js: Main script that handles the tournament simulation.
 
 ## Simulation Logic
 
-Group Stage
+### Group Stage
 
 Each team plays against the other three teams in its group.
 
@@ -58,7 +58,7 @@ Head-to-head results (if tied)
 
 Point difference in head-to-head games (if three teams are tied)
 
-Advancement to Elimination Stage
+### Advancement to Elimination Stage
 
 The top 3 teams from each group are ranked (1 to 9):
 
@@ -70,7 +70,7 @@ Third-place teams ranked 7-9
 
 The top 8 teams advance; the 9th-ranked team is eliminated.
 
-Draw for Elimination Stage
+### Draw for Elimination Stage
 
 Teams are divided into 4 pots:
 
@@ -94,7 +94,7 @@ Teams that played each other in the group stage cannot meet in the quarterfinals
 
 Quarterfinals → Semifinals → Finals & 3rd Place Match
 
-Winners advance, losers are eliminated (except for semifinal losers who play for bronze).
+Winners advance, and losers are eliminated (except for semifinal losers who play for bronze).
 
 ## Output structure:
 
